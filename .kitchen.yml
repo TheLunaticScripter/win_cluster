@@ -1,0 +1,26 @@
+driver:
+  name: vagrant
+  customize:
+    cpus: 2
+    memory: 4096
+
+transport:
+  name: winrm
+  elevated: true
+
+provisioner:
+  name: chef_zero
+
+platforms:
+  - name: windows-2012r2
+    driver_config:
+      box:  opentable/win-2012r2-standard-amd64-nocm
+
+suites:
+  - name: default
+    run_list:
+      - recipe[win_cluster::default]
+    verifier:
+      inspec_tests:
+        - test/recipes
+    attributes:
