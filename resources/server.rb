@@ -1,3 +1,4 @@
+property :cluster_name, String, required: true
 property :creator, [true, false], default: true
 property :ip_address, String, required: true
 property :attach_storage, [true, false], default: false
@@ -16,18 +17,18 @@ action :create do
       dsc_resource feature do
         resource :windowsfeature
         property :ensure, 'Present'
-        property :name, feature
+        property :name, feature # ~FC108
         reboot_action :reboot_now
       end
     end
     cmd = ''
     cmd << 'New-Cluster'
-    cmd << " -Name #{new_resource.name}"
+    cmd << " -Name #{new_resource.cluster_name}"
     cmd << ' -Node $env:COMPUTERNAME'
     cmd << " -StaticAddress #{new_resource.ip_address}"
     cmd << ' -NoStorage' unless new_resource.attach_storage
     cmd << ' -Force;'
-    powershell_script "Create cluster #{new_resource.name}" do
+    powershell_script "Create cluster #{new_resource.cluster_name}" do
       code cmd
     end
   end
@@ -47,16 +48,16 @@ action :join do
       dsc_resource feature do
         resource :windowsfeature
         property :ensure, 'Present'
-        property :name, feature
+        property :name, feature # ~FC108
         reboot_action :reboot_now
       end
     end
     cmd = ''
     cmd << 'Add-ClusterNode'
     cmd << ' -Name $env:COMPUTERNAME'
-    cmd << " -Cluster #{new_resource.name}"
+    cmd << " -Cluster #{new_resource.cluster_name}"
     cmd << ' -NoStorage' unless new_resource.attach_storage
-    powershell_script "Add current node to cluster #{new_resource.name}" do
+    powershell_script "Add current node to cluster #{new_resource.cluster_name}" do
       code cmd
     end
   end
@@ -72,7 +73,7 @@ action_class do
 
   def node_exists?
     cmd = create_cmd
-    cmd << "$clusternodes = Get-ClusterNode -Cluster #{new_resource.name};"
+    cmd << "$clusternodes = Get-ClusterNode -Cluster #{new_resource.cluster_name};"
     cmd << '($cluster -ne $null) -and ($clusternodes.Contains($env:COMPUTERNAME))'
     check = Mixlib::ShellOut.new("powershell.exe -command \"& {#{cmd}}\"").run_command
     check.stdout.match('True')
@@ -81,7 +82,7 @@ action_class do
   def create_cmd
     cmd = ''
     cmd << '$cluster = Get-Cluster'
-    cmd << " -Name #{new_resource.name}"
+    cmd << " -Name #{new_resource.cluster_name}"
     cmd << ' -Domain ((Get-WmiObject Win32_ComputerSystem).Domain);'
   end
 end
